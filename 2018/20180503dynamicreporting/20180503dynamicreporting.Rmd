@@ -1,0 +1,291 @@
+---
+title: "Why I hope that Statcheck is useless within one year: A case for dynamic documents"
+author: "Marino van Zelst"
+date: "01/05/2018"
+output:
+  ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Dynamic documents in R Markdown {.flexbox .vcenter .build}
+
+<b>
+Massive disclaimer: I seriously do not know what I'm doing. I try stuff and it works at times. Please consider trying stuff too. It's fun.
+</b>
+
+![I'm serious](programmer.png)
+
+## Dynamic reporting in R Markdown {.flexbox .vcenter}
+
+<b>
+Massive disclaimer: I seriously do not know what I'm doing. I try stuff and it works at times. Please consider trying stuff too. It's fun.
+</b>
+
+
+## A short history {.build}
+
+- Literate programming (Knuth, 1984)
+- Dynamic documents in R (Xie, 2015)
+
+- Sweave: Integration of R into LaTeX documents
+- knitr: Sweave + RMarkdown format, caching, + other language support (Python, C++, etc.)
+
+- knitr is backbone of R Markdown --> Focus of today
+
+## Why should everybody document dynamically - A tripartite
+
+1) Statistical inconsistencies are everywhere.. (Nuijten et al., 2016)
+2) Reproducibility = life
+3) Doing manual work in 2018 seems rather silly
+
+## Statistical inconsistencies are everywhere {.build}
+
+- Inconsistencies in psych: it's bad (Nuijten et al., 2016). Replication in management: same/worse (van Zelst et al., work in progress)
+- Reasons are well-known: typos, copy-paste errors, incorrect rounding, etc.
+
+Solution 1: Statcheck
+
+- But statcheck can only read APA
+- Statcheck shows where you were wrong, but doesn't fix it
+
+## Statistical inconsistencies are everywhere (2) {.build}
+
+Solution 2: tidystats
+
+- R-only, although I'm not sure why this is a problem (:
+- Does not yet support most analyses
+- Specific output (e.g. CIs) has to be added manually
+
+Also: tidystats solves other problems than R Markdown does
+
+Also: use tidystats and R Markdown together (Sleegers, 2018)
+
+## Statistical inconsistencies are everywhere (3) {.build}
+
+R Markdown offers some encompassing solutions:
+
+- It's not after the fact: mistakes are prevented while writing
+- Supports all analyses (e.g., I managed to produce CIs in a table from meta-analytic structural equation modeling)
+- If R can analyze it, R Markdown can print it
+
+Downside:
+
+- The good old steep learning curve
+
+## Reproducibility = life {.build}
+
+1) Will you capable of reproducing your own results in half a year from now?
+2) Will your co-authors be able to do this?
+3) Will a colleague that is not a co-author?
+4) An independent researcher who's in your field of expertise?
+
+Data package requirement (mandatory!): be able to reproduce all your results in reasonable amounts of time
+
+## Reproducibility = life (2) {.build}
+
+Remember those methods sections where you seem unable to understand what the authors did?
+
+Even if you have the syntax/code, would you be able to figure out which analysis produces which result in the paper?
+
+## Reproducibility = life (3) {.build}
+
+![What did I just read](whatdidijustread.jpg)
+
+## Reproducibility = life (4) {.build}
+
+Complete R Markdown file can be self-contained (including main text, data manipulation, analyses, formatting)
+
+You **always** understand which number was produced by which analysis at the exact place in your manuscript
+
+- Don't forget to keep annotating your code: you *will* forget what you did
+
+## Doing manual work in 2018 seems rather silly
+
+"we have to manually copy over statistical results into or out of a manuscript" (Sleegers, 2018)
+
+Manual work situations that can be prevented:
+
+- Redoing analyses when some new data came in (e.g., new papers for your meta-analysis)
+- "Can you try this other statistical specification and send me the table with output?"
+- "Let's submit to this other journal which has completely different formatting requirements"
+
+That seems like a serious waste of time..
+
+## Conclusion
+
+Several research-process related problems:
+
+1) Not all statistics are *correctly* reported
+2) Non-reproducible research is not research --> we cannot take it seriously
+3) Wasting time on non-useful actions
+
+Dynamic documents/dynamic reporting solves this
+
+## Some general statements about R Markdown
+
+Able to produce:
+
+- Word / ODT
+- PDF (LaTeX)
+- html / Github compatible markdown
+- Slides for presentation
+- Shiny documents
+
+Can import:
+
+- data / other R-files / 'internet' files / bib-file / csl-file
+
+
+## So let's put this into practice #hoedan
+
+We'll start with the Student's sleep data (again)
+
+```{r sleep, echo=TRUE, include=TRUE}
+res <- t.test(extra ~ group, data = sleep, var.equal = TRUE)
+```
+
+We found a significant positive effect of drugs on hours of sleep, *t*(` res$parameter`) = ` round(res$statistic,3)`, p = ` round(res$p.value,3)`.
+
+Produces:
+
+We found a significant positive effect of drugs on hours of sleep, *t*(`r res$parameter`) = `r round(res$statistic,3)`, p = `r round(res$p.value,3)`.
+
+## Let's move it up a notch
+
+```{r meta-regressions, echo=FALSE, message=FALSE, error=FALSE, tidy=TRUE, results='markup', warning=FALSE, cache=TRUE}
+# Load data for meta-regressions #
+if(!require(metafor)){install.packages("metafor")}
+require(metafor)
+if(!require(dplyr)){install.packages("dplyr")}
+require(dplyr)
+
+setwd("C:/Users/Marino/Dropbox/projects/2016metaperffeed/data")
+dat <- read.csv("masterdata.csv",header=TRUE)
+dat$var <- 1/(dat$sample_size_firm-3)
+# Splined + separates #
+dat <- dat[ which(dat$perf_mix < 4 & dat$spline==1 & dat$spline_correct ==1),]
+
+# Preparing moderators to be included in models. Model-specific moderators are prepared within separate sections. #
+# Rescale median sample year by subtracting minimum year in sample for ease of interpretation #
+dat$medyear <- ((dat$sample_start+dat$sample_end)/2-(min(dat$sample_start,na.rm=TRUE)))
+dat$medyear <- dat$medyear - min(dat$medyear,na.rm=TRUE)
+dat$medyearsq <- dat$medyear^2
+
+# dummies for variable performance metric #
+dat$finance <- ifelse(dat$perf_metric == "1",1,0)
+
+# dummy for historic lag #
+dat$histformula <- ifelse(dat$historic_lag == "4",1,0)
+dat$histoneyear <- ifelse(dat$historic_lag == "1",1,0)
+
+dat$socialop <- ifelse(dat$social_oper == "1",1,0)
+
+# dummies for variable org_type #
+dat$private <- ifelse(dat$org_type == "2",1,0)
+dat$public <- ifelse(dat$org_type == "1",1,0)
+
+dat$risk <- ifelse(dat$DV_num == "3",1,0)
+dat$change <- ifelse(dat$DV_num == "2",1,0)
+dat$search <- ifelse(dat$DV_num == "1",1,0)
+
+dat$other <- ifelse(dat$industry == "4",1,0)
+dat$service <- ifelse(dat$industry == "3",1,0)
+dat$manufacturing <- ifelse(dat$industry == "2",1,0)
+dat$hightech <- ifelse(dat$industry == "1",1,0)
+
+dat$count <- ifelse(dat$DV_oper == "2",1,0)
+dat$continu <- ifelse(dat$DV_oper == "1",1,0)
+
+#### Meta-regressions ####
+dat$hpfb <-0.5*log((1+dat$hpfb_dv)/(1-dat$hpfb_dv))
+hpfb.wls <- rma(hpfb,mods=~ public + finance + mean_age + service + hightech  + change + search,var,method="DL",data=dat,test="knha")
+res.hpfb <- list(hpfb.wls)
+
+dat$hpfa <-0.5*log((1+dat$hpfa_dv)/(1-dat$hpfa_dv))
+hpfa.wls <- rma(hpfa,mods=~ public + finance + mean_age + service + hightech  + change + search,var,method="DL",data=dat,test="knha")
+res.hpfa <- list(hpfa.wls)
+
+dat$spfb <-0.5*log((1+dat$spfb_dv)/(1-dat$spfb_dv))
+spfb.wls <- rma(spfb,mods=~ public + finance + mean_age + service + hightech + change + search,var,data=dat,method="DL",test="knha")
+res.spfb <- list(spfb.wls)
+
+dat$spfa <-0.5*log((1+dat$spfa_dv)/(1-dat$spfa_dv))
+spfa.wls <- rma(spfa,mods=~ public + finance + mean_age + service + hightech + change + search, var,data=dat,method="DL",test="knha")
+res.spfa <- list(spfa.wls)
+```
+
+We conducted a meta-analysis on organizational performance feedback which tests to what extent firms change their strategies in response to negative performance feedback. 
+
+Obviously, we wanted to test some moderators and conducted a meta-regression.
+
+```{r code show, eval=FALSE, echo=TRUE }
+spfb.wls <- rma(spfb , mods=~ public + finance + mean_age + service + 
+                hightech  + change + search, var, method="DL", 
+                data=dat, test="knha")
+res.spfb <- list(spfb.wls)
+```
+
+## Writing the results section
+
+Code: 
+```{r test, echo=TRUE, comment=""}
+# For social performance feedback, we find that firms are significantly 
+# more responsive to non-financial performance feedback below the 
+# aspiration level ($\beta$ = ` round(spfb.wls$b[3],3)`, 
+# *p*-value = ` round(spfb.wls$pval[3],3)`).
+```
+Produces:
+
+For social performance feedback, we find that firms are significantly more responsive to non-financial performance feedback below the aspiration level ($\beta$ = `r round(spfb.wls$b[3],3)`, *p*-value = `r round(spfb.wls$pval[3],3)`).
+
+## Producing table ##
+
+Let's say you also want to produce a table with the results.
+
+knitr allows for easy table production, *if* you can configure your code right (this will take (many) trial and error runs)
+
+          knitr::kable(data.frame(name=c("Constant","Public firm","Finance",
+          "Firm age","Service","High-tech","Change","Search"),
+          
+          HPFBA = sapply(res.spfb, function(x) x`$`b), 
+          CIlb = sapply(res.spfb, function(x) x`$`ci.lb),
+          CIub = sapply(res.spfb, function(x) x`$`ci.ub),
+          Pvalue=sapply(res.spfb, function(x) x`$`pval),
+
+## Table time
+
+``` {r meta-regression table, echo=FALSE, message=FALSE, error=FALSE, tidy=TRUE, results='markup', warning=FALSE}
+knitr::kable(data.frame(name=c("Constant","Public firm","Finance","Firm age",
+                               "Service","High-tech","Change","Search"),
+           HPFBA=sapply(res.spfb, function(x) x$b),
+           
+           CIlb=sapply(res.spfb, function(x) x$ci.lb),
+           
+           CIub=sapply(res.spfb, function(x) x$ci.ub),
+           
+           Pvalue=sapply(res.spfb, function(x) x$pval)),
+           
+           digits=3,  col.names=c("Variable","PF < HA","CI~lb~","CI~ub~",
+                                  "*p-value*"),
+          caption = "Table 3: Meta-analytic weighted 
+           least squares for social performance feedback")
+```
+
+## Self-contained files
+
+Being smart with packages allows you to make a completely self-contained paper within your Rmd file
+
+```{r open, echo=TRUE, eval=FALSE}
+if(!require(devtools)){install.packages("devtools")}
+require(devtools)
+if(!require(osfr)){install_github("chartgerink/osfr",force=TRUE)}
+require(osfr)
+download_files('bj786', private=TRUE) #masterdata.csv
+download_files('wqyz2', private=TRUE) #reference file for formatting
+download_files('pz3kx', private=TRUE) #20170711studies.csv
+download_files('3v9jf', private=TRUE) #csl file for AMR references
+download_files('g6xur', private=TRUE) #references
+```
