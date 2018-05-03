@@ -24,6 +24,8 @@ Massive disclaimer: I seriously do not know what I'm doing. I try stuff and it w
 Massive disclaimer: I seriously do not know what I'm doing. I try stuff and it works at times. Please consider trying stuff too. It's fun.
 </b>
 
+![Bing](bing.png)
+
 
 ## A short history {.build}
 
@@ -86,7 +88,7 @@ Data package requirement (mandatory!): be able to reproduce all your results in 
 
 ## Reproducibility = life (2) {.build}
 
-Remember those methods sections where you seem unable to understand what the authors did?
+Remember those methods sections where you seem to be unable to understand what the authors did?
 
 Even if you have the syntax/code, would you be able to figure out which analysis produces which result in the paper?
 
@@ -138,8 +140,45 @@ Can import:
 
 - data / other R-files / 'internet' files / bib-file / csl-file
 
+## R Markdown functionality
+
+R Markdown integrates text (Markdown / LaTeX), data manipulation (R), analyses (R), and formatting (Markdown / LaTeX)
+
+Data analysis workflow becomes:
+
+1) Draft intro, theory, methods within Markdown
+
+2) Data preparation
+
+3) Data analysis
+
+4) Write results using code in Markdown file
+
+5) Format document within Markdown file
+
+6) Print and submit!
+
+## R Markdown functionality (2)
+
+How does it work?
+
+You write your normal text (similar to e.g. Word) but add 'code chunks' in your text.
+
+Code chunks act like normal R analyses. I actually often write my code in R to try it until it works and then copy paste it to R Markdown.
+
+When you save results to objects (like in R), you can extract the results from those objects in your main text or put them into graphs/tables.
+
+----
+
+![Example](example2.png)
 
 ## So let's put this into practice #hoedan
+
+## Creating a document
+
+![yaml header](yaml.png)
+
+## How about analyses?
 
 We'll start with the Student's sleep data (again)
 
