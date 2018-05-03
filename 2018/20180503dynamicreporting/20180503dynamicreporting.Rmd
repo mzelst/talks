@@ -77,6 +77,12 @@ Downside:
 
 - The good old steep learning curve
 
+## Reproducibility = problem then, problem now {.build}
+
+"God blessed them and said to them, "Be fruitful and reproduce" (Genesis 1:28; 9:1)
+
+![Reproducibility](reproducibility.jpg)
+
 ## Reproducibility = life {.build}
 
 1) Will you capable of reproducing your own results in half a year from now?
@@ -174,9 +180,17 @@ When you save results to objects (like in R), you can extract the results from t
 
 ## So let's put this into practice #hoedan
 
+Today, I will show some examples of how to build an R Markdown document, how text drafting looks and how you can insert results and other statistical output in your document.
+
+Fasten your seatbelts.
+
 ## Creating a document
 
-![yaml header](yaml.png)
+![yaml header](yamlintro.png)
+
+## Write your draft
+
+![main text](maintext.png)
 
 ## How about analyses?
 
@@ -185,6 +199,8 @@ We'll start with the Student's sleep data (again)
 ```{r sleep, echo=TRUE, include=TRUE}
 res <- t.test(extra ~ group, data = sleep, var.equal = TRUE)
 ```
+
+Code:
 
 We found a significant positive effect of drugs on hours of sleep, *t*(` res$parameter`) = ` round(res$statistic,3)`, p = ` round(res$p.value,3)`.
 
@@ -201,11 +217,12 @@ require(metafor)
 if(!require(dplyr)){install.packages("dplyr")}
 require(dplyr)
 
-setwd("C:/Users/Marino/Dropbox/projects/2016metaperffeed/data")
+setwd("C:/Users/s379011/Dropbox/projects/2016metaperffeed/data")
 dat <- read.csv("masterdata.csv",header=TRUE)
 dat$var <- 1/(dat$sample_size_firm-3)
 # Splined + separates #
 dat <- dat[ which(dat$perf_mix < 4 & dat$spline==1 & dat$spline_correct ==1),]
+dat <- dat[complete.cases(dat[,c("mean_age")]),]
 
 # Preparing moderators to be included in models. Model-specific moderators are prepared within separate sections. #
 # Rescale median sample year by subtracting minimum year in sample for ease of interpretation #
@@ -254,6 +271,7 @@ res.spfb <- list(spfb.wls)
 dat$spfa <-0.5*log((1+dat$spfa_dv)/(1-dat$spfa_dv))
 spfa.wls <- rma(spfa,mods=~ public + finance + mean_age + service + hightech + change + search, var,data=dat,method="DL",test="knha")
 res.spfa <- list(spfa.wls)
+
 ```
 
 We conducted a meta-analysis on organizational performance feedback which tests to what extent firms change their strategies in response to negative performance feedback. 
@@ -261,7 +279,7 @@ We conducted a meta-analysis on organizational performance feedback which tests 
 Obviously, we wanted to test some moderators and conducted a meta-regression.
 
 ```{r code show, eval=FALSE, echo=TRUE }
-spfb.wls <- rma(spfb , mods=~ public + finance + mean_age + service + 
+spfb.wls <- rma(spfb , mods=~ public + finance*mean_age + service + 
                 hightech  + change + search, var, method="DL", 
                 data=dat, test="knha")
 res.spfb <- list(spfb.wls)
@@ -287,19 +305,23 @@ Let's say you also want to produce a table with the results.
 knitr allows for easy table production, *if* you can configure your code right (this will take (many) trial and error runs)
 
           knitr::kable(data.frame(name=c("Constant","Public firm","Finance",
-          "Firm age","Service","High-tech","Change","Search"),
+          "Firm age","Service","High-tech","Change","Search","Interaction MetricAge"),
           
           HPFBA = sapply(res.spfb, function(x) x`$`b), 
           CIlb = sapply(res.spfb, function(x) x`$`ci.lb),
           CIub = sapply(res.spfb, function(x) x`$`ci.ub),
           Pvalue=sapply(res.spfb, function(x) x`$`pval),
+          digits=3,  col.names=c("Variable","PF < HA","CI~lb~","CI~ub~",
+                                  "*p-value*"),
+          caption = "Table 3: Meta-analytic weighted 
+           least squares for social performance feedback")
 
-## Table time
+## Table time {.build}
 
 ``` {r meta-regression table, echo=FALSE, message=FALSE, error=FALSE, tidy=TRUE, results='markup', warning=FALSE}
 knitr::kable(data.frame(name=c("Constant","Public firm","Finance","Firm age",
                                "Service","High-tech","Change","Search"),
-           HPFBA=sapply(res.spfb, function(x) x$b),
+           SPFBA=sapply(res.spfb, function(x) x$b),
            
            CIlb=sapply(res.spfb, function(x) x$ci.lb),
            
@@ -312,6 +334,62 @@ knitr::kable(data.frame(name=c("Constant","Public firm","Finance","Firm age",
           caption = "Table 3: Meta-analytic weighted 
            least squares for social performance feedback")
 ```
+
+----
+
+So we wanted to plot some meta-analytic interaction. We interact our 'performance metric' variable with 'organizational age'.
+
+```{r plot, echo=TRUE, warning=FALSE, message=FALSE, eval=FALSE}
+require(metafor)
+dat$spfb <-0.5*log((1+dat$spfb_dv)/(1-dat$spfb_dv))
+spfb.wls <- rma(spfb,mods=~ public + finance*mean_age + service + 
+                  hightech + search + change,var,data=dat,
+                method="DL",test="knha")
+wi    <- 1/sqrt(dat$var)
+size  <- 0.5 + 1.5*(wi - min(wi))/(max(wi) - min(wi))
+plot(dat$mean_age, dat$spfb_dv, pch=19, xlim=c(0,120), ylim=c(-0.5,0.5), cex=size,
+     xlab="Firm age (years)", ylab="Correlation", las = 1, bty="l")
+preds.nonfinance <- predict(spfb.wls, newmods=cbind(1,0,0:120,0,0,0,0,0))
+lines(0:120, preds.nonfinance$pred,col="red",lwd=2)
+lines(0:120, preds.nonfinance$ci.lb,lty="dotted",col="red",lwd=2)
+lines(0:120, preds.nonfinance$ci.ub,lty="dotted",col="red",lwd=2)
+preds.finance <- predict(spfb.wls, newmods=cbind(1,1,0:120,0,0,0,0,0:120))
+lines(0:120, preds.finance$pred,col="blue",lwd=2)
+lines(0:120, preds.finance$ci.lb,lty="dotted",col="blue",lwd=2)
+lines(0:120, preds.finance$ci.ub,lty="dotted",col="blue",lwd=2)
+legend("topright", legend=c("Non-financial","Financial"),lty=c("dotted","solid"),col=c("red","blue"),lwd=2)
+title("P < SA for public")
+```
+
+## Plot
+
+```{r plot print, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+require(metafor)
+dat$spfb <-0.5*log((1+dat$spfb_dv)/(1-dat$spfb_dv))
+spfb.wls <- rma(spfb,mods=~ public + finance*mean_age + service + 
+                  hightech + search + change,var,data=dat,
+                method="DL",test="knha")
+wi    <- 1/sqrt(dat$var)
+size  <- 0.5 + 1.5*(wi - min(wi))/(max(wi) - min(wi))
+plot(dat$mean_age, dat$spfb_dv, pch=19, xlim=c(0,120), ylim=c(-0.5,0.5), cex=size,
+     xlab="Firm age (years)", ylab="Correlation", las = 1, bty="l")
+preds.nonfinance <- predict(spfb.wls, newmods=cbind(1,0,0:120,0,0,0,0,0))
+lines(0:120, preds.nonfinance$pred,col="red",lwd=2)
+lines(0:120, preds.nonfinance$ci.lb,lty="dotted",col="red",lwd=2)
+lines(0:120, preds.nonfinance$ci.ub,lty="dotted",col="red",lwd=2)
+preds.finance <- predict(spfb.wls, newmods=cbind(1,1,0:120,0,0,0,0,0:120))
+lines(0:120, preds.finance$pred,col="blue",lwd=2)
+lines(0:120, preds.finance$ci.lb,lty="dotted",col="blue",lwd=2)
+lines(0:120, preds.finance$ci.ub,lty="dotted",col="blue",lwd=2)
+legend("topright", legend=c("Non-financial","Financial"),lty=c("dotted","solid"),col=c("red","blue"),lwd=2)
+title("P < SA for public")
+```
+
+## Reporting statistics
+
+Because all statistics are structured in a manner you devised, it is very easy to write functions that return *whatever-style* output.
+
+Using code inside your text allows you to specify where you want statistical output, which can be individual tests, tables, graphs, etc.
 
 ## Self-contained files
 
@@ -328,3 +406,25 @@ download_files('pz3kx', private=TRUE) #20170711studies.csv
 download_files('3v9jf', private=TRUE) #csl file for AMR references
 download_files('g6xur', private=TRUE) #references
 ```
+
+Live example from a conference paper
+
+## Limitations of R Markdown {.build}
+
+The pesky learning curve:
+
+- Producing a text file with numbers: rather easy
+- Producing a formatted docx/PDF with tables: doable'ish
+- Producing a presentation with analyses, tables, that is nicely formatted: ????
+
+For PhD students: 
+
+- "My supervisor doesn't understand this"
+
+## Concluding thoughts
+
+I think reproduciblity is a daily process. Reproducible research starts today; not when your project is done.
+
+When the TSB Science Committee requests to check your paper, you should be able to send them what they request within five minutes.
+
+R Markdown is a great tool to help you do that.
