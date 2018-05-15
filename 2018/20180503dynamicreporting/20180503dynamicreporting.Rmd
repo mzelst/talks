@@ -202,7 +202,7 @@ res <- t.test(extra ~ group, data = sleep, var.equal = TRUE)
 
 Code:
 
-We found a significant positive effect of drugs on hours of sleep, *t*(` res$parameter`) = ` round(res$statistic,3)`, p = ` round(res$p.value,3)`.
+We found a significant positive effect of drugs on hours of sleep, ```r*t*(res$parameter) =  round(res$statistic,3), p =  round(res$p.value,3).```
 
 Produces:
 
