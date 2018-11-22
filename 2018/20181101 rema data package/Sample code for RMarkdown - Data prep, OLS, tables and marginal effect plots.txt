@@ -1,0 +1,228 @@
+---
+title: "wop-as-you-go"
+author: "s379011 van Zelst"
+date: "21 september 2018"
+output: 
+  word_document:
+    reference_docx: chapter2-reference.docx
+fontsize: 12pt
+csl: apa.csl
+abstract: etc etc.
+---
+
+```{r analyses, message=FALSE, echo=FALSE, error=FALSE, eval=TRUE, tidy=TRUE, results='asis',warning=FALSE}
+
+##Set working directory
+## Load car and sjPlot package
+setwd("C:/Users/s379011/surfdrive/projects/2018wop-as-you-go")
+require(car)
+require(sjPlot)
+
+# Remove two rows of headers #
+# Remove metadata #
+dat <- read.csv("Experiences+of+publishing+research+in+Work+and+Organizational+Psychology_October+28%2C+2018_11.59.csv",header=TRUE,sep=",")[,c(-1:-17)]
+
+## Count number of observations in data ##
+responses <- nrow(dat)
+
+## Set column names
+colnames(dat) <- c("Consent","Journal","Year Published","Number_of_Journals","First Journal Years","First Journal Months","First_Journal_Improvement",
+                   "Final Journal Years","Final Journal Months","Final_Journal_Improvement","Worthwhile","Justifiable","Quality_Reviews","Quality_Editorial",
+                   "Print Journal Years","Print Journal Months","Topic","Age","Gender","Country","Academic_Position","Repeat Code","Journal_Impact_Factor")
+
+## Recode responses from factors into numeric 7-point Likert scales for main variables
+dat$Justifiable <- ifelse(dat$Justifiable == "Strongly agree", 7, 
+                            ifelse(dat$Justifiable == "Agree",6,
+                                   ifelse(dat$Justifiable == "Somewhat agree",5,
+                                          ifelse(dat$Justifiable == "Neither agree nor disagree",4,
+                                                 ifelse(dat$Justifiable == "Somewhat disagree",3,
+                                                        ifelse(dat$Justifiable == "Disagree",2,
+                                                               ifelse(dat$Justifiable == "Strongly disagree",1,
+                                                                      NA)))))))
+
+dat$Worthwhile <- ifelse(dat$Worthwhile == "Strongly agree", 7, 
+                           ifelse(dat$Worthwhile == "Agree",6,
+                                  ifelse(dat$Worthwhile == "Somewhat agree",5,
+                                         ifelse(dat$Worthwhile == "Neither agree nor disagree",4,
+                                                ifelse(dat$Worthwhile == "Somewhat disagree",3,
+                                                       ifelse(dat$Worthwhile == "Disagree",2,
+                                                              ifelse(dat$Worthwhile == "Strongly disagree",1,
+                                                                     NA)))))))
+
+
+
+
+dat$Quality_Editorial <- ifelse(dat$Quality_Editorial == "Extremely good", 7, 
+                                  ifelse(dat$Quality_Editorial == "Moderately good",6,
+                                         ifelse(dat$Quality_Editorial == "Slightly good",5,
+                                                ifelse(dat$Quality_Editorial == "Neither good nor bad",4,
+                                                       ifelse(dat$Quality_Editorial == "Slightly bad",3,
+                                                              ifelse(dat$Quality_Editorial == "Moderately bad",2,
+                                                                     ifelse(dat$Quality_Editorial == "Extremely bad",1,
+                                                                            NA)))))))
+
+dat$Quality_Reviews <- ifelse(dat$Quality_Reviews == "Extremely good", 7, 
+                                ifelse(dat$Quality_Reviews == "Moderately good",6,
+                                       ifelse(dat$Quality_Reviews == "Slightly good",5,
+                                              ifelse(dat$Quality_Reviews == "Neither good nor bad",4,
+                                                     ifelse(dat$Quality_Reviews == "Slightly bad",3,
+                                                            ifelse(dat$Quality_Reviews == "Moderately bad",2,
+                                                                   ifelse(dat$Quality_Reviews == "Extremely bad",1,
+                                                                          NA)))))))
+
+dat$Tenure <- ifelse(dat$Academic_Position == "Assistant Professor without tenure",1,
+                        ifelse(dat$Academic_Position == "PhD student",1,
+                               ifelse(dat$Academic_Position == "Post-Doc",1,
+                                      ifelse(dat$Academic_Position == "Other",1,
+                                             ifelse(dat$Academic_Position == "Teacher",1,
+                                                    ifelse(dat$Academic_Position == "Assistant Professor with tenure",2,
+                                                           ifelse(dat$Academic_Position == "Full Professor",2,
+                                                                  ifelse(dat$Academic_Position == "Associate Professor",2,
+                                                                         NA))))))))
+
+dat$Final_Journal_Improvement <- ifelse(dat$Final_Journal_Improvement == "Much better", 7, 
+                                  ifelse(dat$Final_Journal_Improvement == "Moderately better",6,
+                                         ifelse(dat$Final_Journal_Improvement == "Slightly better",5,
+                                                ifelse(dat$Final_Journal_Improvement == "About the same",4,
+                                                       ifelse(dat$Final_Journal_Improvement == "Slightly worse",3,
+                                                              ifelse(dat$Final_Journal_Improvement == "Moderately worse",2,
+                                                                     ifelse(dat$Final_Journal_Improvement == "Much worse",1,
+                                                                            NA)))))))
+
+dat$First_Journal_Improvement <- ifelse(dat$First_Journal_Improvement == "Much better", 7, 
+                                  ifelse(dat$First_Journal_Improvement == "Moderately better",6,
+                                         ifelse(dat$First_Journal_Improvement == "Slightly better",5,
+                                                ifelse(dat$First_Journal_Improvement == "About the same",4,
+                                                       ifelse(dat$First_Journal_Improvement == "Slightly worse",3,
+                                                              ifelse(dat$First_Journal_Improvement == "Moderately worse",2,
+                                                                     ifelse(dat$First_Journal_Improvement == "Much worse",1,
+                                                                            NA)))))))
+
+## Calculate dummy. Male/other = reference category, female = predictor
+dat$Female <- ifelse(dat$Gender == "Female",1,0)
+
+# Calculate time between submission at first journal and acceptance at last journal
+dat$`First Journal Years` <- recode(dat$`First Journal Years`,"NA=99")
+dat$`First Journal Months` <- recode(dat$`First Journal Months`,"NA=99")
+dat$`First Time` <- ifelse(dat$`First Journal Years` == 99,dat$`First Journal Months`,
+                           ifelse(dat$`First Journal Months` == 99,dat$`First Journal Years`*12,
+                                  dat$`First Journal Years`*12+dat$`First Journal Months`))
+dat$`First Time` <- recode(dat$`First Time`,"99=NA")
+dat$First_Time <- dat$`First Time`/12
+
+
+# Calculate time between submission at last journal and acceptance at last journal
+dat$`Final Journal Years` <- recode(dat$`Final Journal Years`,"NA=99")
+dat$`Final Journal Months` <- recode(dat$`Final Journal Months`,"NA=99")
+dat$Final_Time <- ifelse(dat$`Final Journal Years` == 99,dat$`Final Journal Months`,
+                           ifelse(dat$`Final Journal Months` == 99,dat$`Final Journal Years`*12,
+                                  dat$`Final Journal Years`*12+dat$`Final Journal Months`))
+dat$Final_Time <- recode(dat$Final_Time,"99=NA")
+dat$Final_Time <- dat$Final_Time/12
+
+## OLS regression for justifiable. Predictors:
+## Time at last journal, tenured, journal impact factor, improvement of manuscript quality, quality of reviews
+## quality of editorial, researcher age, researcher gender
+res.just <- lm(Justifiable ~ Final_Time + Tenure + Journal_Impact_Factor  + Final_Journal_Improvement + Quality_Reviews + Quality_Editorial + Age + Female,dat)
+
+## OLS regression for worthwhile Predictors:
+## Time at last journal, tenured, journal impact factor, improvement of manuscript quality, quality of reviews
+## quality of editorial, researcher age, researcher gender
+res.worth <- lm(Worthwhile ~ Final_Time + Tenure + Journal_Impact_Factor  + Final_Journal_Improvement + Quality_Reviews + Quality_Editorial + Age + Female,dat)
+
+## Extract coefficients for table printing, round to 3 digits
+res.final.just <- round(summary(res.just)$coefficient,3)
+res.final.worth <- round(summary(res.worth)$coefficient,3)
+
+## OLS regression justifiable including interactions 
+## Interaction: time at last journal * Tenure
+res.just.int <- lm(Justifiable ~ Final_Time + Tenure + Final_Time*Tenure + Final_Journal_Improvement + Quality_Reviews + Quality_Editorial + Age + Female,dat)
+
+## OLS regression wortwhile including interactions 
+## Interaction: time at last journal * Tenure + time at last journal * journal impact factor
+res.worth.int <- lm(Worthwhile ~ Final_Time*Tenure + Final_Time*Journal_Impact_Factor + Final_Journal_Improvement + Quality_Reviews + Quality_Editorial + Age + Female,dat)
+
+## Extract coefficients for table printing, round to 3 digits
+res.final.just.int <- round(summary(res.just.int)$coefficient,3)
+res.final.worth.int <- round(summary(res.worth.int)$coefficient,3)
+
+
+## Compare models with main effects with models including interaction variables
+improv.just <- anova(res.just,res.just.int)
+improv.worth <- anova(res.worth,res.worth.int)
+
+## Amount of observations per model
+### Justifiable
+obs.just <- summary(res.just)$df[[1]] + summary(res.just)$df[[2]] 
+obs.worth <-  summary(res.worth)$df[[1]] + summary(res.worth)$df[[2]]
+
+## Number of repeated entries
+dat$Repeated_Entries <- ifelse(dat$`Repeat Code` == "",NA,dat$`Repeat Code`)
+## Number of unique responses in complete dataset 
+unique_responses <- responses - sum(table(dat$Repeated_Entries)-1)
+
+```
+
+```{r sample, message=FALSE, echo=FALSE, error=FALSE, eval=TRUE, tidy=TRUE, results='markup',warning=FALSE}
+totalinvited <- 400
+```
+
+#METHODS
+##Sample and data collection
+
+We sent an online survey link to recently published WOP researchers, because we wanted to understand how published authors perceived the publishing system within WOP. We compiled a list of 15 prominent WOP journals^[the journals used were .....] and collected contact information from the first author of every original research article in the two most recent issues at the time of data collection. We chose the first author as key informant under the assumption that this author dedicated the largest of amount of time to the study. Second, we also distributed the online survey to our own network of WOP scholars. The survey was distributed to `r totalinvited` authors in total, while we received a total of `r responses` responses (response rate: `r round(responses/totalinvited*100,2)`%). After removing responses that contained missing data, we had `r obs.just` responses for *justifiability* and `r obs.worth` responses for *worthwhile*.
+
+##Procedure
+Recently published authors of the selected journals received an email inviting them to participate in an online survey on their experience in publishing WOP research. The survey contained a set of closed items for the main variables of interest and a number of control variables. We manually collected additional information based on the responses, such as the journal impact factor of the indicated journal in the response. We provided participants with the possibility to repeat the survey for other articles they published in WOP journals, although the number of unique respondents was relatively high (`r round(unique_responses/responses*100,2)`%). We sent out three reminders to the list of authors we collected. We preregistered the sample size, data collection procedures, and analytic techniques at: <https://osf.io/7bdmh/?view_only=228b20592b4142579147d030123a1647>.
+
+##Variables
+The two dependent variables were *justifiability* and *worthwhile*. Justifiability was measured with a single item: "To what extent do you consider the time it took between the date of original submission at the journal where it got accepted and final acceptance to be justifiable compared to the extent to which your manuscript has changed in the mean time?". We measured *worth* with the same item, but replaced justifiable with worthwhile. Participants responded to the items on 7-point Likert scale (from 1 "Strongly disagree" to 7 "Strongly agree").
+
+The independent variable was operationalized as *time to publish*, which was measured in two distinct ways. First, participants were asked to indicate the amount of years and months that passed between the submission to the first journal and acceptance at the last journal the article was submitted. Second, participants were asked to indicate the amount of years and months that passed between the submission to the last journal and acceptance at the last journal the article was submitted^[When an article gets accepted at the first journal it is submitted to, these two measurements are completely overlapping.].
+
+*Journal impact factor* was manually collected from the Journal Citation Reports of Clarivatics, from which we used the 2-year impact factor. We selected the 2-year impact factor over the 5-year, as most research is evaluated based on the former (REFERENCE?). The survey contained a closed question on academic rank, which we used to measure *Tenured*. Participants were given the possibility to choose among: 'full professor', 'associate professor', 'assistant professor with tenure', 'assistant professor without tenure', 'post-doc', 'PhD student', 'teacher', researcher', or 'other'. We collapsed the first three categories into the dummy 'tenured', while the remaining categories were collapsed into the 'non-tenured' dummy.
+
+We controlled for a number of variables. We controlled for the amount of *journals the manuscript was sumbmitted to* and whether the respondent perceived the manuscript to have *improved* between first submission and acceptance (a 7-point Likert scale was used which ranged from 1 "Much worse" to 7 "Much better"). We also controlled for the *quality of the reviews* and *quality of the editorial guidance* (both on 7-point Likert scales which ranged from 1 "Extremely bad" to 7 "Extremely good"). Last, we included the responent's *gender* (male/other as the reference category) and *age*.
+
+
+#RESULTS
+Correlation matrix
+```{r correlation matrix, message=FALSE, echo=FALSE, error=FALSE, eval=TRUE, tidy=TRUE, results='markup',warning=FALSE}
+
+## Print correlation matrix, round to three digits. Use listwise deletion
+cor <- round(cor(dat[,c("Justifiable","Worthwhile","Final_Time","Tenure","Journal_Impact_Factor","Number_of_Journals","Final_Journal_Improvement","Quality_Reviews","Quality_Editorial","Female","Age")],use = "complete.obs"),3)
+
+## Print correlation matrix, round to three digits. Use listwise deletion, different specification
+knitr::kable(round(cor(dat[,c("Justifiable","Worthwhile","Final_Time","Tenure","Journal_Impact_Factor","Number_of_Journals","Final_Journal_Improvement","Quality_Reviews",
+           "Quality_Editorial","Female","Age")],use = "na.or.complete"),2),caption= "Table 3: Descriptive Statistics")
+
+```
+
+
+Table 1 presents the means, standard deviations, and correlations for all variables. The variables *justifiable* and *worthwhile* are highly correlated (r = `r cor[1,2]`).
+
+```{r extract model values, message=FALSE, echo=FALSE, error=FALSE, eval=TRUE, tidy=TRUE, results='markup',warning=FALSE}
+improv.just.p <- round(improv.just$`Pr(>F)`,3)[[2]]
+```
+The models without interaction effects show good fit ($R^2_{Justifiability}$ = `r round(summary(res.just)$r.squared,3)` and $R^2_{Worthwhile}$ = `r round(summary(res.worth)$r.squared,3)`).
+
+To test the effects of time to publish on perceived justifiability and worth, two OLS regressions were conducted. In line with hypothesis 1a, we found that time to publish is negatively associated with perceived justifiability ($\beta$ = `r round(summary(res.just)$coefficients["Final_Time","Estimate"],3)`, *p* = `r round((summary(res.just)$coefficients["Final_Time","Pr(>|t|)"]/2),3)`). We fail to find support for hypothesis 1b, as journal impact factor does not significantly moderate the relationship between time to publish and perceived worth ($\beta$ = `r round(summary(res.worth.int)$coefficients["Final_Time:Journal_Impact_Factor","Estimate"],3)`, *p* = `r round((summary(res.worth.int)$coefficients["Final_Time:Journal_Impact_Factor","Pr(>|t|)"]/2),3)`).
+
+We find some support for hypothesis 2a, as tenure has a marginally significant effect on the relationship between time to publish and perceived justifiability ($\beta$ = `r round(summary(res.just.int)$coefficients["Final_Time:Tenure","Estimate"],3)`, *p* = `r round((summary(res.just.int)$coefficients["Final_Time:Tenure","Pr(>|t|)"]/2),3)`).
+
+We also fail to find support for hypothesis 2b, as tenure does not significantly moderate the relationship between time to publish and perceived worth ($\beta$ = `r round(summary(res.worth.int)$coefficients["Final_Time:Tenure","Estimate"],3)`, *p* = `r round((summary(res.worth.int)$coefficients["Final_Time:Tenure","Pr(>|t|)"]/2),3)`).
+
+
+```{r tables main results, message=FALSE, echo=FALSE, error=FALSE, eval=TRUE, tidy=TRUE, results='markup',warning=FALSE}
+## Print regression results - only direct effects
+knitr::kable(res.final.just, Variable=c("Intercept","Final Time","Tenured","Improvement","Review quality", "Editorial quality", "Age", "Gender"),caption = "Table 1: Justifiable - Main effects")
+knitr::kable(res.final.worth, Variable=c("Intercept","Final Time","Tenured","Improvement","Review quality", "Editorial quality", "Age", "Gender"),caption = "Table 2: Worthwhile - Main effects")
+## Print regression results - including interaction effects
+knitr::kable(res.final.just.int, Variable=c("Intercept","Final Time","Tenured","Improvement","Review quality", "Editorial quality", "Age", "Gender"),caption = "Table 3: Justifiable - Interaction effects")
+knitr::kable(res.final.worth.int, Variable=c("Intercept","Final Time","Tenured","Improvement","Review quality", "Editorial quality", "Age", "Gender"),caption = "Table 4: Worthwhile - Interaction effects")
+
+## Plot marginal effects plots for interaction analyses
+plot_model(res.just.int, type="pred",terms=c("Final_Time","Tenure"))
+plot_model(res.worth.int, type="pred",terms=c("Final_Time","Tenure"))
+plot_model(res.worth.int, type="pred",terms=c("Final_Time","Journal_Impact_Factor"))
+```
