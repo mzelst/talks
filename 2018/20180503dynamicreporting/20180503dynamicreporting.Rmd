@@ -3,7 +3,7 @@ title: "Why I hope that Statcheck is useless within one year: A case for dynamic
 author: "Marino van Zelst"
 date: "01/05/2018"
 output:
-  ioslides_presentation
+  powerpoint_presentation
 ---
 
 ```{r setup, include=FALSE}
